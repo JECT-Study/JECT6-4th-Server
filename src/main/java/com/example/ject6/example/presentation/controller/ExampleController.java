@@ -21,6 +21,7 @@ public class ExampleController {
     private ApiResponse<GetInfoResponse> getInfo(
             @PathVariable Long id
     ) {
+
         GetInfoResponse response = exampleService.getInfo(id);
 
         return ApiResponse.success(response);

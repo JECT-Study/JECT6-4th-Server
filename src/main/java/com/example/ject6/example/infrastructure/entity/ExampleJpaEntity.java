@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "example")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+/* Q) createdAt, updatedAt 등의 구현 편의성을 위해 @EntityListeners(AuditingEntityListener.class)를 사용할 지 궁금합니다.
+ * */
 public class ExampleJpaEntity {
 
     @Id
