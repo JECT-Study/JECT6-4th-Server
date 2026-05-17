@@ -1,19 +1,15 @@
 package com.ject6.boost.testapi;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
-@Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class TestPostService {
-
     private final TestPostRepository testPostRepository;
-
-    public TestPostService(TestPostRepository testPostRepository) {
-        this.testPostRepository = testPostRepository;
-    }
 
     @Transactional
     public TestPostResponse create(TestPostCreateRequest request) {
