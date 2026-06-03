@@ -4,7 +4,7 @@ import com.ject6.boost.domain.user.domain.constant.ActivityType;
 import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.domain.entity.UserActivityType;
 import com.ject6.boost.domain.user.infrastructure.repository.UserActivityTypeJpaRepository;
-import com.ject6.boost.domain.user.infrastructure.repository.UserActivityTypeRepository;
+import com.ject6.boost.domain.user.domain.repository.UserActivityTypeRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

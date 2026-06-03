@@ -4,7 +4,7 @@ import com.ject6.boost.domain.user.domain.constant.ActivityType;
 import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.domain.entity.UserActivityChannel;
 import com.ject6.boost.domain.user.infrastructure.repository.UserActivityChannelJpaRepository;
-import com.ject6.boost.domain.user.infrastructure.repository.UserActivityChannelRepository;
+import com.ject6.boost.domain.user.domain.repository.UserActivityChannelRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;

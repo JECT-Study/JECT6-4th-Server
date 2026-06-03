@@ -2,7 +2,7 @@ package com.ject6.boost.domain.user.infrastructure.impl;
 
 import com.ject6.boost.domain.user.domain.entity.Region;
 import com.ject6.boost.domain.user.infrastructure.repository.RegionJpaRepository;
-import com.ject6.boost.domain.user.infrastructure.repository.RegionRepository;
+import com.ject6.boost.domain.user.domain.repository.RegionRepository;
 import java.util.Collection;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

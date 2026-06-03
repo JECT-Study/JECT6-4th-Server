@@ -4,7 +4,7 @@ import com.ject6.boost.domain.auth.domain.OAuthProvider;
 import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.domain.entity.UserOAuthAccount;
 import com.ject6.boost.domain.user.infrastructure.repository.UserOAuthAccountJpaRepository;
-import com.ject6.boost.domain.user.infrastructure.repository.UserOAuthAccountRepository;
+import com.ject6.boost.domain.user.domain.repository.UserOAuthAccountRepository;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

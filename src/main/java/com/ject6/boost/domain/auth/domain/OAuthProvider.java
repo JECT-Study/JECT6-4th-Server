@@ -1,7 +1,7 @@
 package com.ject6.boost.domain.auth.domain;
 
 import com.ject6.boost.common.exception.BusinessException;
-import com.ject6.boost.domain.auth.presentaion.exception.AuthErrorCode;
+import com.ject6.boost.domain.auth.application.exception.AuthErrorCode;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;

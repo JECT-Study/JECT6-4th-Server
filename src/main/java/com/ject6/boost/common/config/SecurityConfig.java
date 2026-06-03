@@ -3,7 +3,7 @@ package com.ject6.boost.common.config;
 import com.ject6.boost.common.exception.GlobalErrorCode;
 import com.ject6.boost.common.security.RedisSessionAuthenticationFilter;
 import com.ject6.boost.common.security.SecurityErrorResponseWriter;
-import com.ject6.boost.domain.auth.application.handler.OAuth2LoginSuccessHandler;
+import com.ject6.boost.domain.auth.presentation.handler.OAuth2LoginSuccessHandler;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

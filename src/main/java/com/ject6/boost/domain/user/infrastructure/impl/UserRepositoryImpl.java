@@ -2,7 +2,7 @@ package com.ject6.boost.domain.user.infrastructure.impl;
 
 import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.infrastructure.repository.UserJpaRepository;
-import com.ject6.boost.domain.user.infrastructure.repository.UserRepository;
+import com.ject6.boost.domain.user.domain.repository.UserRepository;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
