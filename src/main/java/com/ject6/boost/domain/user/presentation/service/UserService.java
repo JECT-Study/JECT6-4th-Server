@@ -15,9 +15,7 @@ import com.ject6.boost.domain.user.domain.constant.NicknameSuffix;
 import com.ject6.boost.domain.user.domain.entity.Category;
 import com.ject6.boost.domain.user.domain.entity.Region;
 import com.ject6.boost.domain.user.domain.entity.User;
-import com.ject6.boost.domain.user.domain.entity.UserActivityChannel;
 import com.ject6.boost.domain.user.domain.entity.UserActivityType;
-import com.ject6.boost.domain.user.domain.entity.UserCategory;
 import com.ject6.boost.domain.user.domain.entity.UserRegion;
 import com.ject6.boost.domain.user.infrastructure.repository.CategoryRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.RegionRepository;
@@ -126,19 +124,9 @@ public class UserService {
 
         user.completeOnboarding(request.nickname().trim());
 
-        userCategoryRepository.deleteByUser(user);
-        userActivityTypeRepository.deleteByUser(user);
-        userRegionRepository.deleteByUser(user);
-
-        userCategoryRepository.saveAll(categories.stream()
-                .map(category -> UserCategory.create(user, category))
-                .toList());
-        userActivityTypeRepository.saveAll(activityTypes.stream()
-                .map(activityType -> UserActivityType.create(user, activityType))
-                .toList());
-        userRegionRepository.saveAll(regions.stream()
-                .map(region -> UserRegion.create(user, region))
-                .toList());
+        userCategoryRepository.replaceAll(user, categories);
+        userActivityTypeRepository.replaceAll(user, activityTypes);
+        userRegionRepository.replaceAll(user, regions);
 
         return new OnboardingProfileResponse(
                 user.getId(),
@@ -163,12 +151,11 @@ public class UserService {
         }
 
         User user = findUser(principal);
-        UserActivityChannel channel = userActivityChannelRepository
-                .findByUserAndActivityType(user, request.activityType())
-                .orElseGet(() -> userActivityChannelRepository.save(
-                        UserActivityChannel.create(user, request.activityType(), request.url().trim())
-                ));
-        channel.updateUrl(request.url().trim());
+        var channel = userActivityChannelRepository.saveOrUpdate(
+                user,
+                request.activityType(),
+                request.url().trim()
+        );
 
         return new ActivityChannelResponse(channel.getId(), channel.getActivityType(), channel.getUrl());
     }

@@ -5,16 +5,13 @@ import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.domain.entity.UserActivityChannel;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserActivityChannelRepository {
+public interface UserActivityChannelJpaRepository extends JpaRepository<UserActivityChannel, Long> {
 
     List<UserActivityChannel> findByUser(User user);
 
     Optional<UserActivityChannel> findByUserAndActivityType(User user, ActivityType activityType);
-
-    UserActivityChannel save(UserActivityChannel userActivityChannel);
-
-    UserActivityChannel saveOrUpdate(User user, ActivityType activityType, String url);
 
     void deleteByUserAndActivityType(User user, ActivityType activityType);
 }

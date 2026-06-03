@@ -1,17 +1,14 @@
 package com.ject6.boost.domain.user.infrastructure.repository;
 
-import com.ject6.boost.domain.user.domain.entity.Region;
 import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.domain.entity.UserRegion;
+import com.ject6.boost.domain.user.domain.entity.UserRegionId;
 import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRegionRepository {
+public interface UserRegionJpaRepository extends JpaRepository<UserRegion, UserRegionId> {
 
     List<UserRegion> findByUser(User user);
-
-    List<UserRegion> saveAll(List<UserRegion> userRegions);
-
-    void replaceAll(User user, List<Region> regions);
 
     void deleteByUser(User user);
 }
