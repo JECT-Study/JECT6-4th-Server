@@ -228,9 +228,9 @@ public class UserService {
     }
 
     private List<CategoryType> parseCategoryTypes(List<String> categoryTypeValues) {
-        return distinct(categoryTypeValues).stream()
+        return distinct(categoryTypeValues.stream()
                 .map(this::parseCategoryType)
-                .toList();
+                .toList());
     }
 
     private CategoryType parseCategoryType(String value) {
@@ -245,9 +245,9 @@ public class UserService {
     }
 
     private List<ActivityType> parseActivityTypes(List<String> activityTypeValues) {
-        return distinct(activityTypeValues).stream()
+        return distinct(activityTypeValues.stream()
                 .map(this::parseActivityType)
-                .toList();
+                .toList());
     }
 
     private ActivityType parseActivityType(String value) {
