@@ -1,24 +1,53 @@
 package com.ject6.boost.domain.auth.domain;
 
+import com.ject6.boost.common.exception.BusinessException;
+import com.ject6.boost.domain.auth.presentaion.exception.AuthErrorCode;
 import java.util.Locale;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
-import org.springframework.web.server.ResponseStatusException;
 
+@RequiredArgsConstructor
 public enum OAuthProvider {
-    KAKAO,
-    GOOGLE,
-    NAVER;
+    KAKAO("kakao");
 
+    private final String registrationId;
+
+    /**
+     * Spring Security OAuth2 client registration id를 반환하는 함수.
+     */
+    public String registrationId() {
+        return registrationId;
+    }
+
+    /**
+     * OAuth2 client registration id로 서비스 OAuth provider enum을 찾는 함수.
+     */
+    public static OAuthProvider fromRegistrationId(String registrationId) {
+        if (!StringUtils.hasText(registrationId)) {
+            throw new BusinessException(AuthErrorCode.OAUTH_PROVIDER_REQUIRED);
+        }
+
+        for (OAuthProvider provider : values()) {
+            if (provider.registrationId.equalsIgnoreCase(registrationId)) {
+                return provider;
+            }
+        }
+
+        throw new BusinessException(AuthErrorCode.UNSUPPORTED_OAUTH_PROVIDER);
+    }
+
+    /**
+     * API path 등 외부 입력 문자열로 서비스 OAuth provider enum을 찾는 함수.
+     */
     public static OAuthProvider from(String value) {
         if (!StringUtils.hasText(value)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OAuth provider is required.");
+            throw new BusinessException(AuthErrorCode.OAUTH_PROVIDER_REQUIRED);
         }
 
         try {
             return OAuthProvider.valueOf(value.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported OAuth provider: " + value);
+            throw new BusinessException(AuthErrorCode.UNSUPPORTED_OAUTH_PROVIDER);
         }
     }
 }

@@ -20,9 +20,41 @@ spring:
         initialize-schema: ${SPRING_AI_VECTORSTORE_PGVECTOR_INITIALIZE_SCHEMA:true}
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:true}
+    locations: classpath:db/migration
 
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_OAUTH_CLIENT_ID:}
+            client-secret: ${KAKAO_OAUTH_CLIENT_SECRET:}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: ${KAKAO_OAUTH_REDIRECT_URI:{baseUrl}/login/oauth2/code/kakao}
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+jwt:
+  issuer: ${JWT_ISSUER:boost}
+  secret: ${JWT_SECRET:boost-local-development-secret-key-change-me}
+  access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:30m}
+  refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:7d}
+
+oauth:
+  session-ttl: ${OAUTH_SESSION_TTL:30m}
+  refresh-session-ttl: ${OAUTH_REFRESH_SESSION_TTL:7d}
