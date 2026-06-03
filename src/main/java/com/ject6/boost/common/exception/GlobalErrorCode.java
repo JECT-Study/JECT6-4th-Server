@@ -13,7 +13,8 @@ public enum GlobalErrorCode implements ErrorCode {
     UNAUTHORIZED_REQUEST("COM-003", "인증이 필요한 요청입니다.", HttpStatus.UNAUTHORIZED),
     ACCESS_TOKEN_EXPIRED("COM-004", "로그인이 만료되었습니다. 다시 로그인해 주세요.", HttpStatus.UNAUTHORIZED),
     REFRESH_TOKEN_EXPIRED("COM-005", "자동 로그인이 만료되었습니다. 다시 로그인해 주세요.", HttpStatus.UNAUTHORIZED),
-    INVALID_TOKEN("COM-006", "유효하지 않은 토큰입니다.", HttpStatus.BAD_REQUEST);
+    INVALID_TOKEN("COM-006", "유효하지 않은 토큰입니다.", HttpStatus.BAD_REQUEST),
+    FORBIDDEN_REQUEST("COM-007", "접근 권한이 없습니다.", HttpStatus.FORBIDDEN);
 
     private final String code;
     private final String message;
