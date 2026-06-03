@@ -54,7 +54,3 @@ jwt:
   secret: ${JWT_SECRET:boost-local-development-secret-key-change-me}
   access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:30m}
   refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:7d}
-
-oauth:
-  session-ttl: ${OAUTH_SESSION_TTL:30m}
-  refresh-session-ttl: ${OAUTH_REFRESH_SESSION_TTL:7d}

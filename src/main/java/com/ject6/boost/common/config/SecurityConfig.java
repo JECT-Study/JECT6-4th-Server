@@ -1,7 +1,7 @@
 package com.ject6.boost.common.config;
 
 import com.ject6.boost.common.exception.GlobalErrorCode;
-import com.ject6.boost.common.security.RedisSessionAuthenticationFilter;
+import com.ject6.boost.common.security.JwtAuthenticationFilter;
 import com.ject6.boost.common.security.SecurityErrorResponseWriter;
 import com.ject6.boost.domain.auth.presentation.handler.OAuth2LoginSuccessHandler;
 import java.util.List;
@@ -36,7 +36,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            RedisSessionAuthenticationFilter redisSessionAuthenticationFilter,
+            JwtAuthenticationFilter jwtAuthenticationFilter,
             SecurityErrorResponseWriter securityErrorResponseWriter,
             OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler
     ) throws Exception {
@@ -61,7 +61,7 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2LoginSuccessHandler)
                 )
-                .addFilterBefore(redisSessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

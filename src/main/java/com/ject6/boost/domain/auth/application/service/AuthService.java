@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ject6.boost.common.exception.BusinessException;
 import com.ject6.boost.common.security.AuthenticatedUser;
+import com.ject6.boost.common.security.JwtProperties;
 import com.ject6.boost.common.security.JwtToken;
 import com.ject6.boost.common.security.JwtTokenProvider;
 import com.ject6.boost.domain.auth.presentation.dto.OAuthLoginResult;
@@ -12,7 +13,6 @@ import com.ject6.boost.domain.auth.presentation.dto.OAuthLoginUserResponse;
 import com.ject6.boost.domain.auth.presentation.dto.TokenRefreshResponse;
 import com.ject6.boost.domain.auth.domain.OAuthProvider;
 import com.ject6.boost.domain.auth.infrastructure.OAuthRedisKeys;
-import com.ject6.boost.domain.auth.infrastructure.oauth.OAuthClientProperties;
 import com.ject6.boost.domain.auth.application.exception.AuthErrorCode;
 import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.domain.entity.UserOAuthAccount;
@@ -33,7 +33,7 @@ public class AuthService {
 
     private static final String TOKEN_TYPE = "Bearer";
 
-    private final OAuthClientProperties oauthClientProperties;
+    private final JwtProperties jwtProperties;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final JwtTokenProvider jwtTokenProvider;
@@ -90,13 +90,9 @@ public class AuthService {
     }
 
     /**
-     * access token과 refresh token에 연결된 Redis 세션을 제거하는 함수.
+     * refresh token에 연결된 Redis 세션을 제거하는 함수.
      */
     public void logout(String accessToken, String refreshToken) {
-        if (StringUtils.hasText(accessToken)) {
-            String accessTokenId = jwtTokenProvider.validateAndGetTokenId(accessToken);
-            redisTemplate.delete(OAuthRedisKeys.SESSION_KEY_PREFIX + accessTokenId);
-        }
         if (StringUtils.hasText(refreshToken)) {
             String refreshTokenId = jwtTokenProvider.validateRefreshTokenAndGetTokenId(refreshToken);
             redisTemplate.delete(OAuthRedisKeys.REFRESH_KEY_PREFIX + refreshTokenId);
@@ -120,14 +116,10 @@ public class AuthService {
     }
 
     /**
-     * access token을 발급하고 서비스 세션을 Redis에 저장하는 함수.
+     * access token을 발급하는 함수.
      */
     private JwtToken issueAccessToken(AuthenticatedUser authenticatedUser) {
-        JwtToken accessToken = jwtTokenProvider.issue(authenticatedUser);
-        String redisKey = OAuthRedisKeys.SESSION_KEY_PREFIX + accessToken.id();
-
-        saveSession(redisKey, authenticatedUser, oauthClientProperties.getSessionTtl());
-        return accessToken;
+        return jwtTokenProvider.issue(authenticatedUser);
     }
 
     /**
@@ -137,7 +129,7 @@ public class AuthService {
         JwtToken refreshToken = jwtTokenProvider.issueRefreshToken(authenticatedUser);
         String redisKey = OAuthRedisKeys.REFRESH_KEY_PREFIX + refreshToken.id();
 
-        saveSession(redisKey, authenticatedUser, oauthClientProperties.getRefreshSessionTtl());
+        saveSession(redisKey, authenticatedUser, jwtProperties.getRefreshTokenTtl());
         return refreshToken;
     }
 

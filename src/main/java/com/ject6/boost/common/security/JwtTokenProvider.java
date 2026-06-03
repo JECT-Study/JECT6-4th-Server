@@ -5,13 +5,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ject6.boost.common.exception.BusinessException;
 import com.ject6.boost.common.exception.GlobalErrorCode;
-import java.nio.charset.StandardCharsets;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.crypto.Mac;
@@ -35,14 +36,14 @@ public class JwtTokenProvider {
     private final ObjectMapper objectMapper;
 
     /**
-     * 인증된 사용자 정보를 기반으로 서비스 access token을 발급하는 함수.
+     * 인증 사용자 정보를 기반으로 서비스 access token을 발급하는 함수.
      */
     public JwtToken issue(AuthenticatedUser user) {
         return issue(user, jwtProperties.getAccessTokenTtl(), ACCESS_TOKEN_TYPE);
     }
 
     /**
-     * 인증된 사용자 정보를 기반으로 서비스 refresh token을 발급하는 함수.
+     * 인증 사용자 정보를 기반으로 서비스 refresh token을 발급하는 함수.
      */
     public JwtToken issueRefreshToken(AuthenticatedUser user) {
         return issue(user, jwtProperties.getRefreshTokenTtl(), REFRESH_TOKEN_TYPE);
@@ -77,20 +78,29 @@ public class JwtTokenProvider {
     }
 
     /**
-     * access token의 서명과 만료 시간을 검증하고 Redis 세션 조회에 사용할 token id를 반환하는 함수.
+     * access token을 검증하고 JWT claim에서 인증 사용자 정보를 복원하는 함수.
      */
-    public String validateAndGetTokenId(String token) {
-        return validateAndGetTokenId(token, ACCESS_TOKEN_TYPE);
+    public AuthenticatedUser validateAccessTokenAndGetUser(String token) {
+        Map<String, Object> payload = validateAndGetPayload(token, ACCESS_TOKEN_TYPE);
+        return new AuthenticatedUser(
+                getSubjectAsUserId(payload),
+                getStringListClaim(payload, "roles")
+        );
     }
 
     /**
-     * refresh token의 서명과 만료 시간을 검증하고 Redis 세션 조회에 사용할 token id를 반환하는 함수.
+     * refresh token을 검증하고 Redis refresh 세션 조회에 사용할 token id를 반환하는 함수.
      */
     public String validateRefreshTokenAndGetTokenId(String token) {
-        return validateAndGetTokenId(token, REFRESH_TOKEN_TYPE);
+        Map<String, Object> payload = validateAndGetPayload(token, REFRESH_TOKEN_TYPE);
+        Object tokenId = payload.get("jti");
+        if (!(tokenId instanceof String value) || !StringUtils.hasText(value)) {
+            throw new BusinessException(GlobalErrorCode.INVALID_TOKEN);
+        }
+        return value;
     }
 
-    private String validateAndGetTokenId(String token, String expectedTokenType) {
+    private Map<String, Object> validateAndGetPayload(String token, String expectedTokenType) {
         if (!StringUtils.hasText(token)) {
             throw new BusinessException(GlobalErrorCode.INVALID_TOKEN);
         }
@@ -118,12 +128,7 @@ public class JwtTokenProvider {
             throw new BusinessException(GlobalErrorCode.ACCESS_TOKEN_EXPIRED);
         }
 
-        Object tokenId = payload.get("jti");
-        if (!(tokenId instanceof String value) || !StringUtils.hasText(value)) {
-            throw new BusinessException(GlobalErrorCode.INVALID_TOKEN);
-        }
-
-        return value;
+        return payload;
     }
 
     /**
@@ -158,6 +163,28 @@ public class JwtTokenProvider {
         Object value = payload.get(claimName);
         if (value instanceof Number number) {
             return number.longValue();
+        }
+        throw new BusinessException(GlobalErrorCode.INVALID_TOKEN);
+    }
+
+    private Long getSubjectAsUserId(Map<String, Object> payload) {
+        Object subject = payload.get("sub");
+        if (subject instanceof String value && StringUtils.hasText(value)) {
+            try {
+                return Long.parseLong(value);
+            } catch (NumberFormatException exception) {
+                throw new BusinessException(GlobalErrorCode.INVALID_TOKEN);
+            }
+        }
+        throw new BusinessException(GlobalErrorCode.INVALID_TOKEN);
+    }
+
+    private List<String> getStringListClaim(Map<String, Object> payload, String claimName) {
+        Object value = payload.get(claimName);
+        if (value instanceof List<?> values && values.stream().allMatch(String.class::isInstance)) {
+            return values.stream()
+                    .map(String.class::cast)
+                    .toList();
         }
         throw new BusinessException(GlobalErrorCode.INVALID_TOKEN);
     }
