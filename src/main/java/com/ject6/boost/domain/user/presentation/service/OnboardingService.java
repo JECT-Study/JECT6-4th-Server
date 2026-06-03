@@ -60,7 +60,7 @@ public class OnboardingService {
         validatePrincipal(principal);
         validateRequest(request);
 
-        User user = userRepository.findById(principal.userId())
+        User user = userRepository.findActiveById(principal.userId())
                 .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
         List<Long> categoryIds = distinct(request.categoryIds());
         List<ActivityType> activityTypes = parseActivityTypes(request.activityTypes());

@@ -5,6 +5,7 @@ import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.domain.entity.UserCategory;
 import com.ject6.boost.domain.user.infrastructure.repository.UserCategoryJpaRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.UserCategoryRepository;
+import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -36,5 +37,10 @@ public class UserCategoryRepositoryImpl implements UserCategoryRepository {
     @Override
     public void deleteByUser(User user) {
         userCategoryJpaRepository.deleteByUser(user);
+    }
+
+    @Override
+    public int softDeleteByUser(User user, OffsetDateTime deletedAt) {
+        return userCategoryJpaRepository.softDeleteByUser(user, deletedAt);
     }
 }

@@ -12,7 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import java.time.OffsetDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -22,13 +21,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 @Getter
 @Entity
-@Table(
-        name = "user_oauth_accounts",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_user_oauth_accounts_provider_user", columnNames = {"provider", "provider_user_id"}),
-                @UniqueConstraint(name = "uk_user_oauth_accounts_user_provider", columnNames = {"user_id", "provider"})
-        }
-)
+@Table(name = "user_oauth_accounts")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserOAuthAccount {
 
@@ -54,6 +47,9 @@ public class UserOAuthAccount {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
 
     /**
      * 서비스 사용자와 OAuth provider 계정을 연결하는 엔티티를 생성하는 함수.

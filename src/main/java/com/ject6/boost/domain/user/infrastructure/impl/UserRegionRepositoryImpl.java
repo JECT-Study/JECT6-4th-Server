@@ -5,6 +5,7 @@ import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.domain.entity.UserRegion;
 import com.ject6.boost.domain.user.infrastructure.repository.UserRegionJpaRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.UserRegionRepository;
+import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -36,5 +37,10 @@ public class UserRegionRepositoryImpl implements UserRegionRepository {
     @Override
     public void deleteByUser(User user) {
         userRegionJpaRepository.deleteByUser(user);
+    }
+
+    @Override
+    public int softDeleteByUser(User user, OffsetDateTime deletedAt) {
+        return userRegionJpaRepository.softDeleteByUser(user, deletedAt);
     }
 }

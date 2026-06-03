@@ -2,6 +2,8 @@ package com.ject6.boost.domain.user.application.controller;
 
 import com.ject6.boost.common.dto.ApiResponse;
 import com.ject6.boost.common.security.AuthenticatedUser;
+import com.ject6.boost.domain.auth.application.handler.OAuth2LoginSuccessHandler;
+import com.ject6.boost.domain.auth.presentaion.service.AuthService;
 import com.ject6.boost.domain.user.application.dto.ActivityChannelRequest;
 import com.ject6.boost.domain.user.application.dto.ActivityChannelResponse;
 import com.ject6.boost.domain.user.application.dto.NicknameCheckResponse;
@@ -11,13 +13,19 @@ import com.ject6.boost.domain.user.application.dto.RandomNicknameResponse;
 import com.ject6.boost.domain.user.application.dto.UserMeResponse;
 import com.ject6.boost.domain.user.presentation.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletResponse;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,7 +35,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController {
 
+    private static final String BEARER_PREFIX = "Bearer ";
+
     private final UserService userService;
+    private final AuthService authService;
 
     @Operation(summary = "내 정보 조회", description = "현재 로그인한 사용자의 프로필, 관심 카테고리, 활동 유형, 지역, 활동 채널 정보를 조회합니다.")
     @GetMapping("/me")
@@ -75,10 +86,34 @@ public class UserController {
         return ApiResponse.success(userService.generateRandomNickname());
     }
 
-    @Operation(summary = "회원 탈퇴", description = "현재 로그인한 사용자를 탈퇴 처리합니다.")
+    @Operation(summary = "회원 탈퇴", description = "현재 로그인한 사용자를 탈퇴 처리하고 액세스 토큰 세션과 리프레시 토큰 세션을 삭제합니다.")
     @DeleteMapping("/me")
-    public ApiResponse<Void> withdraw(@AuthenticationPrincipal AuthenticatedUser principal) {
+    public ApiResponse<Void> withdraw(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @CookieValue(name = OAuth2LoginSuccessHandler.REFRESH_TOKEN_COOKIE_NAME, required = false) String refreshToken,
+            HttpServletResponse response
+    ) {
         userService.withdraw(principal);
+        authService.logout(extractBearerToken(authorization), refreshToken);
+        response.addHeader(HttpHeaders.SET_COOKIE, expireRefreshTokenCookie().toString());
         return ApiResponse.success(null);
+    }
+
+    private String extractBearerToken(String authorization) {
+        if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
+            return null;
+        }
+        return authorization.substring(BEARER_PREFIX.length());
+    }
+
+    private ResponseCookie expireRefreshTokenCookie() {
+        return ResponseCookie.from(OAuth2LoginSuccessHandler.REFRESH_TOKEN_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/api/auth/refresh")
+                .maxAge(Duration.ZERO)
+                .build();
     }
 }

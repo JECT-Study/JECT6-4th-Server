@@ -108,7 +108,7 @@ public class AuthService {
      */
     private User findOrCreateUser(OAuthProvider provider, String providerUserId) {
         Optional<UserOAuthAccount> account =
-                userOAuthAccountRepository.findByProviderAndProviderUserId(provider, providerUserId);
+                userOAuthAccountRepository.findActiveByProviderAndProviderUserId(provider, providerUserId);
 
         if (account.isPresent()) {
             return account.get().getUser();

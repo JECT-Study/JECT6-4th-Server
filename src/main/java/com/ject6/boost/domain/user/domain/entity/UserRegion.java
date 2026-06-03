@@ -35,6 +35,9 @@ public class UserRegion {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
     /**
      * 사용자와 지역의 선택 관계를 생성하는 함수.
      */

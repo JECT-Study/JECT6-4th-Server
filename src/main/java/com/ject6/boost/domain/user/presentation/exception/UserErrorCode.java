@@ -19,8 +19,8 @@ public enum UserErrorCode implements ErrorCode {
     USER_NOT_FOUND("USER-008", "사용자를 찾을 수 없습니다.", HttpStatus.UNAUTHORIZED),
     ACTIVITY_CHANNEL_TYPE_REQUIRED("USER-009", "활동 채널 유형이 필요합니다.", HttpStatus.BAD_REQUEST),
     ACTIVITY_CHANNEL_URL_REQUIRED("USER-010", "활동 채널 URL이 필요합니다.", HttpStatus.BAD_REQUEST),
-    INVALID_ACTIVITY_CHANNEL_URL("USER-011", "활동 채널 URL은 https://로 시작해야 합니다.", HttpStatus.BAD_REQUEST),
-    INVALID_ACTIVITY_TYPE("USER-012", "활동 유형은 BLOG, INSTAGRAM, YOUTUBE, TIKTOK, ETC 중 하나여야 합니다.", HttpStatus.BAD_REQUEST);
+    INVALID_ACTIVITY_CHANNEL_URL("USER-011", "활동 채널 URL이 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
+    INVALID_ACTIVITY_TYPE("USER-012", "활동 유형이 올바르지 않습니다.", HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String message;

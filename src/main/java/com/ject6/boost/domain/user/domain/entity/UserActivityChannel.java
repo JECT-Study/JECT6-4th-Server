@@ -48,6 +48,9 @@ public class UserActivityChannel {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
     /**
      * 사용자 활동 채널 URL 엔티티를 생성하는 함수.
      */

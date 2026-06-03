@@ -17,11 +17,13 @@ import com.ject6.boost.domain.user.domain.entity.Region;
 import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.domain.entity.UserActivityType;
 import com.ject6.boost.domain.user.domain.entity.UserRegion;
+import com.ject6.boost.domain.user.infrastructure.repository.BlogAnalysisResultRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.CategoryRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.RegionRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.UserActivityChannelRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.UserActivityTypeRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.UserCategoryRepository;
+import com.ject6.boost.domain.user.infrastructure.repository.UserOAuthAccountRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.UserRegionRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.UserRepository;
 import com.ject6.boost.domain.user.presentation.exception.UserErrorCode;
@@ -51,6 +53,8 @@ public class UserService {
     private final UserActivityTypeRepository userActivityTypeRepository;
     private final UserRegionRepository userRegionRepository;
     private final UserActivityChannelRepository userActivityChannelRepository;
+    private final UserOAuthAccountRepository userOAuthAccountRepository;
+    private final BlogAnalysisResultRepository blogAnalysisResultRepository;
 
     /**
      * 현재 인증된 사용자 정보를 조회하는 함수.
@@ -183,14 +187,21 @@ public class UserService {
     @Transactional
     public void withdraw(AuthenticatedUser principal) {
         User user = findUser(principal);
-        user.withdraw(OffsetDateTime.now());
+        OffsetDateTime deletedAt = OffsetDateTime.now();
+        user.withdraw(deletedAt);
+        userOAuthAccountRepository.softDeleteByUser(user, deletedAt);
+        userCategoryRepository.softDeleteByUser(user, deletedAt);
+        userActivityTypeRepository.softDeleteByUser(user, deletedAt);
+        userActivityChannelRepository.softDeleteByUser(user, deletedAt);
+        userRegionRepository.softDeleteByUser(user, deletedAt);
+        blogAnalysisResultRepository.softDeleteByUser(user, deletedAt);
     }
 
     private User findUser(AuthenticatedUser principal) {
         if (principal == null || principal.userId() == null) {
             throw new BusinessException(UserErrorCode.AUTHENTICATED_USER_REQUIRED);
         }
-        return userRepository.findById(principal.userId())
+        return userRepository.findActiveById(principal.userId())
                 .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
     }
 

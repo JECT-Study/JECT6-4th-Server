@@ -5,6 +5,7 @@ import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.domain.entity.UserActivityChannel;
 import com.ject6.boost.domain.user.infrastructure.repository.UserActivityChannelJpaRepository;
 import com.ject6.boost.domain.user.infrastructure.repository.UserActivityChannelRepository;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -45,5 +46,10 @@ public class UserActivityChannelRepositoryImpl implements UserActivityChannelRep
     @Override
     public void deleteByUserAndActivityType(User user, ActivityType activityType) {
         userActivityChannelJpaRepository.deleteByUserAndActivityType(user, activityType);
+    }
+
+    @Override
+    public int softDeleteByUser(User user, OffsetDateTime deletedAt) {
+        return userActivityChannelJpaRepository.softDeleteByUser(user, deletedAt);
     }
 }
