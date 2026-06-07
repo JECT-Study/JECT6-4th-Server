@@ -49,8 +49,19 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
 jwt:
   issuer: ${JWT_ISSUER:boost}
   secret: ${JWT_SECRET:boost-local-development-secret-key-change-me}
   access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:30m}
   refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:7d}
+
+python:
+  ai:
+    server:
+      url: ${ANALYZE_SERVER_URL:http://localhost:8000}

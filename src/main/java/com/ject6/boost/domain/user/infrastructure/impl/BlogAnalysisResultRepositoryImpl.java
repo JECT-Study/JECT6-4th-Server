@@ -1,9 +1,11 @@
 package com.ject6.boost.domain.user.infrastructure.impl;
 
+import com.ject6.boost.domain.user.domain.entity.BlogAnalysisResult;
 import com.ject6.boost.domain.user.domain.entity.User;
 import com.ject6.boost.domain.user.infrastructure.repository.BlogAnalysisResultJpaRepository;
 import com.ject6.boost.domain.user.domain.repository.BlogAnalysisResultRepository;
 import java.time.OffsetDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -16,5 +18,10 @@ public class BlogAnalysisResultRepositoryImpl implements BlogAnalysisResultRepos
     @Override
     public int softDeleteByUser(User user, OffsetDateTime deletedAt) {
         return blogAnalysisResultJpaRepository.softDeleteByUser(user, deletedAt);
+    }
+
+    @Override
+    public List<BlogAnalysisResult> findByUserIdAndDeletedAtIsNull(Long userId) {
+        return blogAnalysisResultJpaRepository.findByUserIdAndDeletedAtIsNull(userId);
     }
 }

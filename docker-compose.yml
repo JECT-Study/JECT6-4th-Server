@@ -30,6 +30,16 @@ services:
       timeout: 5s
       retries: 10
 
+  boost-rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: boost-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
 volumes:
   postgres-data:
   redis-data:

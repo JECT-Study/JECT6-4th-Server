@@ -30,7 +30,8 @@ public class SecurityConfig {
             "/api/auth/refresh",
             "/oauth2/**",
             "/login/oauth2/**",
-            "/api/test-posts/**"
+            "/api/test-posts/**",
+            "/onboarding/**"
     };
 
     @Bean
