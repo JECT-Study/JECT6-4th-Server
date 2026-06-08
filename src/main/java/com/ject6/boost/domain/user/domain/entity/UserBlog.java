@@ -34,7 +34,7 @@ public class UserBlog {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "blog_url", nullable = false, length = 500)
+    @Column(name = "blog_url", nullable = false, length = 255)
     private String blogUrl;
 
     @Enumerated(EnumType.STRING)
