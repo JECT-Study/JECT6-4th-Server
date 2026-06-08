@@ -36,14 +36,12 @@ public class AuthController implements AuthApi {
     private final OAuthAuthorizationCodeClient oAuthAuthorizationCodeClient;
 
     @GetMapping("/login/{provider}")
-    @Override
     public RedirectView login(@PathVariable String provider) {
         OAuthProvider oauthProvider = OAuthProvider.from(provider);
         return new RedirectView("/oauth2/authorization/" + oauthProvider.registrationId());
     }
 
     @PostMapping("/login/{provider}")
-    @Override
     public ApiResponse<OAuthLoginResponse> login(@PathVariable String provider, @RequestBody OAuthLoginRequest request) {
         OAuthProvider oauthProvider = OAuthProvider.from(provider);
         OAuthUserProfile profile = oAuthAuthorizationCodeClient.fetchProfile(oauthProvider, request);
@@ -51,7 +49,6 @@ public class AuthController implements AuthApi {
     }
 
     @PostMapping("/logout")
-    @Override
     public ApiResponse<Void> logout(
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             @CookieValue(name = OAuth2LoginSuccessHandler.REFRESH_TOKEN_COOKIE_NAME, required = false) String refreshToken,

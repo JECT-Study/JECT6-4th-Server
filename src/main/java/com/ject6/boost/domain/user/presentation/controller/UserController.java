@@ -59,7 +59,6 @@ public class UserController implements UserApi {
 
     @PostMapping("/me")
     @ResponseStatus(HttpStatus.CREATED)
-    @Override
     public ApiResponse<ProfileResponse> createProfile(
             @AuthenticationPrincipal AuthenticatedUser principal,
             @RequestBody ProfileRequest request
@@ -69,7 +68,6 @@ public class UserController implements UserApi {
 
     @PostMapping("/me/blog")
     @ResponseStatus(HttpStatus.CREATED)
-    @Override
     public ApiResponse<BlogLinkResponse> linkBlog(
             @AuthenticationPrincipal AuthenticatedUser principal,
             @RequestBody BlogLinkRequest request
