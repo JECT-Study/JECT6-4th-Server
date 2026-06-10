@@ -25,11 +25,14 @@ public interface CampaignApi {
 
     @Operation(summary = "공고 목록 조회", description = "필터/정렬/페이지네이션 적용")
     ResponseEntity<ApiResponse<Page<CampaignListResponse>>> getCampaigns(
-        CampaignFilterRequest filter, Pageable pageable);
+        CampaignFilterRequest filter,
+        Pageable pageable,
+        @AuthenticationPrincipal AuthenticatedUser auth);
 
     @Operation(summary = "공고 상세 조회")
     ResponseEntity<ApiResponse<CampaignDetailResponse>> getCampaign(
-        @PathVariable Long id);
+        @PathVariable Long id,
+        @AuthenticationPrincipal AuthenticatedUser auth);
 
     @Operation(summary = "실시간 조회자 수 조회")
     ResponseEntity<ApiResponse<Map<String, Long>>> getViewers(

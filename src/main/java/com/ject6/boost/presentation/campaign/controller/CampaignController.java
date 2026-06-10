@@ -36,16 +36,19 @@ public class CampaignController implements CampaignApi {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<CampaignListResponse>>> getCampaigns(
-        CampaignFilterRequest filter, Pageable pageable) {
+        CampaignFilterRequest filter,
+        Pageable pageable,
+        @AuthenticationPrincipal AuthenticatedUser auth) {
         return ResponseEntity.ok(ApiResponse.success(
-            campaignService.getCampaigns(filter, pageable)));
+            campaignService.getCampaigns(filter, pageable, userIdOrNull(auth))));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CampaignDetailResponse>> getCampaign(
-        @PathVariable Long id) {
+        @PathVariable Long id,
+        @AuthenticationPrincipal AuthenticatedUser auth) {
         return ResponseEntity.ok(ApiResponse.success(
-            campaignService.getCampaign(id)));
+            campaignService.getCampaign(id, userIdOrNull(auth))));
     }
 
     @GetMapping("/{id}/viewers")
@@ -100,5 +103,9 @@ public class CampaignController implements CampaignApi {
         @PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(
             campaignLikeService.getLikeAnalysis(id)));
+    }
+
+    private Long userIdOrNull(AuthenticatedUser auth) {
+        return auth == null ? null : auth.userId();
     }
 }

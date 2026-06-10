@@ -34,6 +34,7 @@ public class CampaignDetailResponse {
     private String status;
     private String sourceUrl;
     private Long viewCount;
+    private boolean liked;
 
     private List<ImageItem> images;
     private LocationInfo location;
@@ -52,6 +53,10 @@ public class CampaignDetailResponse {
     ) {}
 
     public static CampaignDetailResponse from(Campaign campaign) {
+        return from(campaign, false);
+    }
+
+    public static CampaignDetailResponse from(Campaign campaign, boolean liked) {
         List<ImageItem> images = campaign.getThumbnailUrl() != null
             ? List.of(new ImageItem(campaign.getThumbnailUrl(), campaign.getTitle()))
             : List.of();
@@ -94,6 +99,7 @@ public class CampaignDetailResponse {
                 ? campaign.getStatus().name() : null)
             .sourceUrl(campaign.getSourceUrl())
             .viewCount(campaign.getViewCount())
+            .liked(liked)
             .images(images)
             .location(null)
             .campaignDetail(detail)

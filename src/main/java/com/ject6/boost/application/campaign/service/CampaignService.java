@@ -3,12 +3,15 @@ package com.ject6.boost.application.campaign.service;
 import com.ject6.boost.application.common.exception.BusinessException;
 import com.ject6.boost.infrastructure.common.redis.ViewerCountService;
 import com.ject6.boost.application.campaign.exception.CampaignErrorCode;
+import com.ject6.boost.domain.campaign.constant.UserCampaignStatus;
 import com.ject6.boost.domain.campaign.entity.Campaign;
 import com.ject6.boost.domain.campaign.repository.CampaignRepository;
+import com.ject6.boost.domain.campaign.repository.UserCampaignRepository;
 import com.ject6.boost.presentation.campaign.dto.CampaignDetailResponse;
 import com.ject6.boost.presentation.campaign.dto.CampaignFilterRequest;
 import com.ject6.boost.presentation.campaign.dto.CampaignListResponse;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,19 +24,32 @@ import org.springframework.transaction.annotation.Transactional;
 public class CampaignService {
 
     private final CampaignRepository campaignRepository;
+    private final UserCampaignRepository userCampaignRepository;
     private final ViewerCountService viewerCountService;
 
     public Page<CampaignListResponse> getCampaigns(
         CampaignFilterRequest filter, Pageable pageable) {
-        return campaignRepository.search(filter, pageable)
-            .map(CampaignListResponse::from);
+        return getCampaigns(filter, pageable, null);
+    }
+
+    public Page<CampaignListResponse> getCampaigns(
+        CampaignFilterRequest filter, Pageable pageable, Long userId) {
+        Page<Campaign> campaigns = campaignRepository.search(filter, pageable);
+        Set<Long> likedCampaignIds = findLikedCampaignIds(userId, campaigns.getContent());
+
+        return campaigns.map(campaign ->
+            CampaignListResponse.from(campaign, likedCampaignIds.contains(campaign.getId())));
     }
 
     public CampaignDetailResponse getCampaign(Long id) {
+        return getCampaign(id, null);
+    }
+
+    public CampaignDetailResponse getCampaign(Long id, Long userId) {
         Campaign campaign = campaignRepository.findById(id)
             .orElseThrow(() -> new BusinessException(
                 CampaignErrorCode.CAMPAIGN_NOT_FOUND));
-        return CampaignDetailResponse.from(campaign);
+        return CampaignDetailResponse.from(campaign, isLiked(userId, id));
     }
 
     public Long getViewerCount(Long id) {
@@ -69,5 +85,27 @@ public class CampaignService {
             .stream()
             .map(CampaignListResponse::from)
             .toList();
+    }
+
+    private Set<Long> findLikedCampaignIds(Long userId, List<Campaign> campaigns) {
+        if (userId == null || campaigns.isEmpty()) {
+            return Set.of();
+        }
+
+        List<Long> campaignIds = campaigns.stream()
+            .map(Campaign::getId)
+            .toList();
+
+        return Set.copyOf(userCampaignRepository.findCampaignIdsByUserIdAndCampaignIdInAndStatus(
+            userId, campaignIds, UserCampaignStatus.LIKED));
+    }
+
+    private boolean isLiked(Long userId, Long campaignId) {
+        if (userId == null) {
+            return false;
+        }
+
+        return userCampaignRepository.existsByUserIdAndCampaignIdAndStatus(
+            userId, campaignId, UserCampaignStatus.LIKED);
     }
 }

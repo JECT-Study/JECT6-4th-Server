@@ -24,8 +24,13 @@ public class CampaignListResponse {
     private Boolean isGuaranteed;
     private String status;
     private Long viewCount;
+    private boolean liked;
 
     public static CampaignListResponse from(Campaign campaign) {
+        return from(campaign, false);
+    }
+
+    public static CampaignListResponse from(Campaign campaign, boolean liked) {
         return CampaignListResponse.builder()
             .id(campaign.getId())
             .sourcePlatform(campaign.getSourcePlatform())
@@ -45,6 +50,7 @@ public class CampaignListResponse {
             .status(campaign.getStatus() != null
                 ? campaign.getStatus().name() : null)
             .viewCount(campaign.getViewCount())
+            .liked(liked)
             .build();
     }
 }

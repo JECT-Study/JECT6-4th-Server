@@ -23,6 +23,7 @@ public class UserCampaignRepositoryImpl implements UserCampaignRepository {
     @Override public List<UserCampaign> findByUserId(Long userId)                   { return jpaRepository.findByUserId(userId); }
     @Override public List<UserCampaign> findByUserIdAndStatus(Long u, UserCampaignStatus s) { return jpaRepository.findByUserIdAndStatus(u, s); }
     @Override public List<UserCampaign> findByCampaignIdAndStatus(Long c, UserCampaignStatus s) { return jpaRepository.findByCampaignIdAndStatus(c, s); }
+    @Override public List<Long> findCampaignIdsByUserIdAndCampaignIdInAndStatus(Long u, List<Long> ids, UserCampaignStatus s) { return jpaRepository.findCampaignIdsByUserIdAndCampaignIdInAndStatus(u, ids, s); }
     @Override public boolean existsByUserIdAndCampaignIdAndStatus(Long u, Long c, UserCampaignStatus s) { return jpaRepository.existsByUserIdAndCampaignIdAndStatus(u, c, s); }
     @Override public long countByCampaignIdAndStatus(Long c, UserCampaignStatus s)  { return jpaRepository.countByCampaignIdAndStatus(c, s); }
 }
