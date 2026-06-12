@@ -15,7 +15,7 @@ spring:
       pgvector:
         index-type: ${SPRING_AI_VECTORSTORE_PGVECTOR_INDEX_TYPE:hnsw}
         distance-metric: ${SPRING_AI_VECTORSTORE_PGVECTOR_DISTANCE_METRIC:cosine}
-        dimension: ${SPRING_AI_VECTORSTORE_PGVECTOR_DIMENSION:1536}
+        dimension: ${SPRING_AI_VECTORSTORE_PGVECTOR_DIMENSION:768}
         max-documnets: ${SPRING_AI_VECTORSTORE_PGVECTOR_MAX_DOCUMENTS:10000}
         initialize-schema: ${SPRING_AI_VECTORSTORE_PGVECTOR_INITIALIZE_SCHEMA:true}
   jpa:
