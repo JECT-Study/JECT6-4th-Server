@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class CampaignRepositoryImpl implements CampaignRepository {
 
     private final CampaignJpaRepository jpaRepository;
@@ -61,20 +63,15 @@ public class CampaignRepositoryImpl implements CampaignRepository {
         if (filter.getCategories() != null && !filter.getCategories().isEmpty()) {
             builder.and(c.category.in(filter.getCategories()));
         }
-        if (filter.getRegion() != null) {
+        if (filter.getChildRegionId() != null) {
+            builder.and(c.childRegionId.eq(filter.getChildRegionId()));
+        } else if (filter.getParentRegionId() != null) {
+            builder.and(c.parentRegionId.eq(filter.getParentRegionId()));
+        } else if (filter.getRegion() != null) {
             builder.and(c.region.eq(filter.getRegion()));
         }
-        if (filter.getChannel() != null) {
-            builder.and(c.channel.eq(filter.getChannel()));
-        }
-        if (filter.getSourcePlatform() != null) {
-            builder.and(c.sourcePlatform.eq(filter.getSourcePlatform()));
-        }
-        if (filter.getType() != null) {
-            builder.and(c.type.eq(filter.getType()));
-        }
 
-        OrderSpecifier<?> order = resolveOrder(filter.getSort());
+        OrderSpecifier<?> order = resolveOrder(resolveSortType(pageable));
 
         List<Campaign> content = queryFactory
             .selectFrom(c)
@@ -187,13 +184,17 @@ public class CampaignRepositoryImpl implements CampaignRepository {
                 int rows = jdbcTemplate.update("""
                     INSERT INTO campaigns
                       (source_platform, brand_name, title, thumbnail_url, category, type, channel, region,
+                       parent_region_id, child_region_id,
                        provided_content, recruit_count, apply_start_date, apply_end_date,
                        mission, source_url, is_guaranteed, status, view_count, crawled_at, created_at, updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'ACTIVE',0,now(),now(),now())
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'ACTIVE',0,now(),now(),now())
                     ON CONFLICT (source_url) DO UPDATE SET
                       title=EXCLUDED.title,
                       category=EXCLUDED.category,
                       type=EXCLUDED.type,
+                      region=EXCLUDED.region,
+                      parent_region_id=EXCLUDED.parent_region_id,
+                      child_region_id=EXCLUDED.child_region_id,
                       provided_content=EXCLUDED.provided_content,
                       recruit_count=EXCLUDED.recruit_count,
                       apply_end_date=EXCLUDED.apply_end_date,
@@ -205,6 +206,8 @@ public class CampaignRepositoryImpl implements CampaignRepository {
                     item.category(), item.type(),
                     item.channel() != null ? item.channel() : "BLOG",
                     item.region(),
+                    item.parentRegionId(),
+                    item.childRegionId(),
                     item.providedContent(), item.recruitCount(),
                     item.applyStartDate() != null ? java.sql.Date.valueOf(item.applyStartDate()) : null,
                     item.applyEndDate() != null ? java.sql.Date.valueOf(item.applyEndDate()) : null,
@@ -214,8 +217,28 @@ public class CampaignRepositoryImpl implements CampaignRepository {
                 count += rows;
             } catch (Exception e) {
                 // best-effort: 개별 항목 실패 시 로그 후 계속
-                org.slf4j.LoggerFactory.getLogger(getClass())
-                    .warn("campaign upsert 실패 sourceUrl={}: {}", item.sourceUrl(), e.getMessage());
+                log.warn(
+                    "campaign upsert failed sourceUrl={}, exception={}, message={}, "
+                        + "sourcePlatform={}, brandName={}, title={}, category={}, type={}, channel={}, "
+                        + "region={}, parentRegionId={}, childRegionId={}, recruitCount={}, "
+                        + "applyStartDate={}, applyEndDate={}, isGuaranteed={}",
+                    item.sourceUrl(),
+                    e.getClass().getName(),
+                    e.getMessage(),
+                    item.sourcePlatform(),
+                    item.brandName(),
+                    item.title(),
+                    item.category(),
+                    item.type(),
+                    item.channel(),
+                    item.region(),
+                    item.parentRegionId(),
+                    item.childRegionId(),
+                    item.recruitCount(),
+                    item.applyStartDate(),
+                    item.applyEndDate(),
+                    item.isGuaranteed(),
+                    e);
             }
         }
         return count;
@@ -228,5 +251,18 @@ public class CampaignRepositoryImpl implements CampaignRepository {
             case COMPETITION -> c.applyCount.desc();
             case POPULAR     -> c.viewCount.desc();
         };
+    }
+
+    private SortType resolveSortType(Pageable pageable) {
+        if (pageable == null || pageable.getSort().isUnsorted()) {
+            return null;
+        }
+
+        String property = pageable.getSort().iterator().next().getProperty();
+        try {
+            return SortType.from(property);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 }
