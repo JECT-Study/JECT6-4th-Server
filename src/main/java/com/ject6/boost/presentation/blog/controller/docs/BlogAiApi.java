@@ -7,6 +7,9 @@ import com.ject6.boost.presentation.blog.dto.BlogAnalysisHistoryResponse;
 import com.ject6.boost.presentation.blog.dto.BloggerResponse;
 import com.ject6.boost.presentation.blog.dto.ChatRequest;
 import com.ject6.boost.presentation.blog.dto.ChatResponse;
+import com.ject6.boost.presentation.blog.dto.DiagnoseRequest;
+import com.ject6.boost.presentation.blog.dto.DiagnoseResponse;
+import com.ject6.boost.presentation.blog.dto.QuotaResponse;
 import com.ject6.boost.presentation.blog.dto.RecommendedCampaignResponse;
 import com.ject6.boost.presentation.common.dto.ApiResponse;
 import com.ject6.boost.presentation.common.security.authentication.AuthenticatedUser;
@@ -33,6 +36,12 @@ public interface BlogAiApi {
 
     @Operation(summary = "AI 챗봇 메시지", description = "분석 결과를 기반으로 AI 챗봇과 대화합니다.")
     ApiResponse<ChatResponse> chat(AuthenticatedUser principal, ChatRequest request);
+
+    @Operation(summary = "6지표 블로그 진단", description = "분석 완료 문서를 대상으로 6지표(주제일관성·이미지·뷰·키워드·상호작용·정보성) 진단을 실행합니다.")
+    ApiResponse<DiagnoseResponse> runDiagnosis(AuthenticatedUser principal, DiagnoseRequest request);
+
+    @Operation(summary = "진단 쿼터 조회", description = "무료 진단 횟수(used/limit/remaining)를 조회합니다.")
+    ApiResponse<QuotaResponse> getQuota(AuthenticatedUser principal);
 
     @Operation(summary = "챗봇 세션 초기화", description = "지정한 챗봇 세션을 초기화합니다.")
     ApiResponse<Void> resetSession(AuthenticatedUser principal, String sessionId);

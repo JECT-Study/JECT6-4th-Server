@@ -45,6 +45,9 @@ public class OnboardingResponse {
     @Column(name = "region_ids", columnDefinition = "jsonb")
     private List<Long> regionIds;
 
+    @Column(name = "profile_embedding_stored", nullable = false)
+    private boolean profileEmbeddingStored = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -66,17 +69,20 @@ public class OnboardingResponse {
             case 3 -> this.step3Answer = answer;
             case 4 -> this.step4Answer = answer;
         }
+        this.profileEmbeddingStored = false;
     }
 
     public void updateRegionIds(List<Long> regionIds) {
         this.regionIds = regionIds == null ? null : List.copyOf(regionIds);
+        this.profileEmbeddingStored = false;
     }
 
     public void updateActivityTypes(List<String> activityTypes) {
         this.activityTypes = activityTypes == null ? null : List.copyOf(activityTypes);
+        this.profileEmbeddingStored = false;
     }
 
-    public boolean isComplete() {
+    public boolean hasRequiredAnswers() {
         return step1Answer != null
                 && step2Answer != null
                 && step3Answer != null
@@ -85,7 +91,16 @@ public class OnboardingResponse {
                 && activityTypes != null;
     }
 
+    public boolean isComplete() {
+        return hasRequiredAnswers();
+    }
+
+    public void markProfileEmbeddingStored() {
+        this.profileEmbeddingStored = true;
+    }
+
     public void mergeUser(Long userId) {
         this.userId = userId;
+        this.profileEmbeddingStored = false;
     }
 }

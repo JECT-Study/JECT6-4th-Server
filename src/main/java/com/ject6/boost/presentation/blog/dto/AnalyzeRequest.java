@@ -15,5 +15,7 @@ public record AnalyzeRequest(
         )
         @Pattern(regexp = "FULL_BLOG|POST|full_blog|post",
                 message = "analysisMode는 FULL_BLOG 또는 POST 중 하나여야 합니다.")
-        String analysisMode
+        String analysisMode,
+        @Schema(description = "true이면 캐시를 무시하고 재분석합니다.")
+        Boolean forceRefresh
 ) {}

@@ -5,6 +5,8 @@ import com.ject6.boost.presentation.common.security.authentication.Authenticated
 import com.ject6.boost.application.blog.service.BlogAiService;
 import com.ject6.boost.presentation.blog.controller.docs.BlogAiApi;
 import com.ject6.boost.presentation.blog.dto.*;
+import com.ject6.boost.presentation.blog.dto.DiagnoseRequest;
+import com.ject6.boost.presentation.blog.dto.DiagnoseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
@@ -67,6 +69,21 @@ public class BlogAiController implements BlogAiApi {
             @AuthenticationPrincipal AuthenticatedUser principal,
             @Valid @RequestBody ChatRequest request) {
         return ApiResponse.success(blogAiService.chat(principal.userId(), request));
+    }
+
+    @PostMapping("/diagnosis")
+    @Override
+    public ApiResponse<DiagnoseResponse> runDiagnosis(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @Valid @RequestBody DiagnoseRequest request) {
+        return ApiResponse.success(blogAiService.runDiagnosis(principal.userId(), request.documentId()));
+    }
+
+    @GetMapping("/diagnosis/quota")
+    @Override
+    public ApiResponse<QuotaResponse> getQuota(
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        return ApiResponse.success(blogAiService.getQuota(principal.userId()));
     }
 
     @DeleteMapping("/chat/{sessionId}")

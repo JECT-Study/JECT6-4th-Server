@@ -3,6 +3,8 @@ package com.ject6.boost.infrastructure.blog.impl;
 import com.ject6.boost.domain.blog.repository.BlogRecommendationRepository;
 import com.ject6.boost.presentation.blog.dto.BloggerResponse;
 import com.ject6.boost.presentation.blog.dto.RecommendedCampaignResponse;
+import com.ject6.boost.presentation.onboarding.dto.OnboardingRecommendResponse;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -141,6 +143,61 @@ public class PgvectorBlogRecommendationRepository implements BlogRecommendationR
         }, userId, analysisId, analysisId, limit);
 
         return new BloggerCandidates(categoryHolder[0], bloggers);
+    }
+
+    /**
+     * R4: 온보딩 프로필 임베딩으로 공고 추천.
+     * profile_embeddings 테이블에 Analyzer가 저장한 벡터를 쿼리 벡터로 사용한다.
+     * 해당 레코드가 없으면 빈 리스트를 반환하고, 호출부에서 fallback 처리한다.
+     */
+    @Override
+    public List<OnboardingRecommendResponse.CampaignItem> findRecommendedCampaignsByProfileEmbedding(
+            Long userId,
+            int limit
+    ) {
+        String sql = """
+                WITH query_embedding AS (
+                    SELECT embedding
+                    FROM profile_embeddings
+                    WHERE user_id = ?
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                ),
+                ranked AS (
+                    SELECT DISTINCT ON (d.id)
+                        d.id AS document_id,
+                        d.external_id,
+                        1 - (c.embedding <=> qe.embedding) AS score
+                    FROM document_chunks c
+                    JOIN documents d ON d.id = c.document_id
+                    CROSS JOIN query_embedding qe
+                    WHERE d.source_type = 'job_posting'
+                    ORDER BY d.id, c.embedding <=> qe.embedding
+                )
+                SELECT
+                    ca.id              AS id,
+                    ca.title           AS title,
+                    ca.category        AS category,
+                    ca.thumbnail_url   AS thumbnail_url,
+                    ca.apply_end_date  AS apply_end_date
+                FROM ranked
+                JOIN campaigns ca ON ca.source_url = ranked.external_id
+                WHERE ca.deleted_at IS NULL
+                ORDER BY ranked.score DESC
+                LIMIT ?
+                """;
+        try {
+            return jdbcTemplate.query(sql, (rs, rowNum) -> new OnboardingRecommendResponse.CampaignItem(
+                    rs.getLong("id"),
+                    rs.getString("title"),
+                    rs.getString("category"),
+                    rs.getString("thumbnail_url"),
+                    rs.getObject("apply_end_date", LocalDate.class)
+            ), userId, limit);
+        } catch (Exception e) {
+            log.warn("onboarding profile embedding search failed userId={} err={}", userId, e.getMessage());
+            return List.of();
+        }
     }
 
     private int toScore(double similarity) {

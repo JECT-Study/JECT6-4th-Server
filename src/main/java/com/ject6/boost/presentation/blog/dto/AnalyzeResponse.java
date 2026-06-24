@@ -6,5 +6,7 @@ public record AnalyzeResponse(
         String message,
         Integer aiCreditRemaining,
         String correlationId,
-        String batchId
+        String batchId,
+        boolean cached,
+        Long cachedJobId
 ) {}

@@ -15,7 +15,8 @@ public enum BlogErrorCode implements ErrorCode {
     CHAT_TOKEN_LIMIT_EXCEEDED("BLOG-004", "채팅 토큰 한도를 초과했습니다. 새 세션으로 다시 시작해 주세요.", HttpStatus.BAD_REQUEST),
     CHAT_RATE_LIMIT_EXCEEDED("BLOG-005", "채팅 요청 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.", HttpStatus.TOO_MANY_REQUESTS),
     ANALYZE_SERVER_ERROR("BLOG-006", "AI 분석 서버 오류가 발생했습니다.", HttpStatus.BAD_GATEWAY),
-    INVALID_ANALYSIS_MODE("BLOG-007", "analysisMode는 FULL_BLOG 또는 POST 중 하나여야 합니다.", HttpStatus.BAD_REQUEST);
+    INVALID_ANALYSIS_MODE("BLOG-007", "analysisMode는 FULL_BLOG 또는 POST 중 하나여야 합니다.", HttpStatus.BAD_REQUEST),
+    DIAGNOSIS_QUOTA_EXCEEDED("BLOG-008", "무료 진단 횟수(3회)를 모두 사용했습니다.", HttpStatus.TOO_MANY_REQUESTS);
 
     private final String code;
     private final String message;

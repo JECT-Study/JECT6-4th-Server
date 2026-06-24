@@ -1,6 +1,7 @@
 package com.ject6.boost.application.onboarding.service;
 
 import com.ject6.boost.application.common.exception.BusinessException;
+import com.ject6.boost.domain.blog.repository.BlogRecommendationRepository;
 import com.ject6.boost.domain.campaign.constant.CampaignCategory;
 import com.ject6.boost.domain.campaign.constant.CampaignType;
 import com.ject6.boost.domain.campaign.entity.Campaign;
@@ -20,9 +21,11 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OnboardingChatService {
@@ -32,6 +35,8 @@ public class OnboardingChatService {
 
     private final OnboardingResponseRepository onboardingResponseRepository;
     private final CampaignRepository campaignRepository;
+    private final BlogRecommendationRepository blogRecommendationRepository;
+    private final OnboardingProfileEmbeddingSyncService profileEmbeddingSyncService;
 
     @Transactional
     public OnboardingStepResponse saveStep(OnboardingStepRequest request) {
@@ -50,9 +55,21 @@ public class OnboardingChatService {
         applyOnboardingStep(response, request);
         onboardingResponseRepository.save(response);
 
+        if (request.step() == 6 && response.hasRequiredAnswers() && !response.isProfileEmbeddingStored()) {
+            boolean stored = profileEmbeddingSyncService.syncProfileEmbedding(response);
+            if (stored) {
+                response.markProfileEmbeddingStored();
+                onboardingResponseRepository.save(response);
+            }
+        }
+
         boolean complete = response.isComplete();
-        Integer nextStep = complete || request.step() == 6 ? null : request.step() + 1;
+        Integer nextStep = complete ? null : nextStep(request.step());
         return new OnboardingStepResponse(resolvedSessionId, request.step(), complete, nextStep);
+    }
+
+    private Integer nextStep(int currentStep) {
+        return currentStep == 6 ? 6 : currentStep + 1;
     }
 
     private void applyOnboardingStep(OnboardingResponse response, OnboardingStepRequest request) {
@@ -78,6 +95,22 @@ public class OnboardingChatService {
             throw new BusinessException(OnboardingErrorCode.ONBOARDING_NOT_COMPLETE);
         }
 
+        // R4: profile_embeddings 벡터 추천 시도 (임베딩 저장이 확인된 경우)
+        if (response.getUserId() != null && response.isProfileEmbeddingStored()) {
+            try {
+                List<OnboardingRecommendResponse.CampaignItem> vectorItems =
+                        blogRecommendationRepository.findRecommendedCampaignsByProfileEmbedding(
+                                response.getUserId(), MAX_RECOMMENDATIONS);
+                if (!vectorItems.isEmpty()) {
+                    log.info("온보딩 벡터 추천 적용 sessionId={} count={}", sessionId, vectorItems.size());
+                    return new OnboardingRecommendResponse(sessionId, vectorItems);
+                }
+            } catch (Exception e) {
+                log.warn("온보딩 벡터 추천 실패, enum fallback 사용 sessionId={} err={}", sessionId, e.getMessage());
+            }
+        }
+
+        // enum 기반 fallback
         CampaignCategory category = normalizeCategory(response.getStep1Answer());
         CampaignType campaignType = normalizeCampaignType(response.getStep3Answer());
         String activityLevel = response.getStep4Answer();
@@ -101,6 +134,11 @@ public class OnboardingChatService {
         onboardingResponseRepository.findBySessionId(sessionId)
                 .ifPresent(r -> {
                     r.mergeUser(userId);
+                    if (r.hasRequiredAnswers()
+                            && !r.isProfileEmbeddingStored()
+                            && profileEmbeddingSyncService.syncProfileEmbedding(r)) {
+                        r.markProfileEmbeddingStored();
+                    }
                     onboardingResponseRepository.save(r);
                 });
     }

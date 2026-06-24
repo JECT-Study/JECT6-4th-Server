@@ -1,6 +1,7 @@
 package com.ject6.boost.application.onboarding.service;
 
 import com.ject6.boost.application.common.exception.BusinessException;
+import com.ject6.boost.domain.blog.repository.BlogRecommendationRepository;
 import com.ject6.boost.domain.campaign.constant.CampaignCategory;
 import com.ject6.boost.domain.campaign.constant.CampaignType;
 import com.ject6.boost.domain.campaign.entity.Campaign;
@@ -9,6 +10,8 @@ import com.ject6.boost.application.onboarding.exception.OnboardingErrorCode;
 import com.ject6.boost.domain.onboarding.entity.OnboardingResponse;
 import com.ject6.boost.domain.onboarding.repository.OnboardingResponseRepository;
 import com.ject6.boost.presentation.onboarding.dto.OnboardingRecommendResponse;
+import com.ject6.boost.presentation.onboarding.dto.OnboardingStepRequest;
+import com.ject6.boost.presentation.onboarding.dto.OnboardingStepResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +40,10 @@ class OnboardingChatServiceTest {
     private OnboardingResponseRepository onboardingResponseRepository;
     @Mock
     private CampaignRepository campaignRepository;
+    @Mock
+    private BlogRecommendationRepository blogRecommendationRepository;
+    @Mock
+    private OnboardingProfileEmbeddingSyncService profileEmbeddingSyncService;
 
     @InjectMocks
     private OnboardingChatService onboardingChatService;
@@ -65,6 +72,56 @@ class OnboardingChatServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(OnboardingErrorCode.ONBOARDING_NOT_COMPLETE));
+    }
+
+    @Test
+    @DisplayName("답변이 모두 있으면 프로필 임베딩 저장 전이어도 enum fallback 추천을 반환한다")
+    void getRecommendations_answersCompleteButEmbeddingNotStoredUsesFallback() {
+        OnboardingResponse complete = completeSessionWithoutEmbedding("BEAUTY", "YES", "DELIVERY", "MIDDLE");
+        complete.mergeUser(42L);
+        given(onboardingResponseRepository.findBySessionId(SESSION_ID)).willReturn(Optional.of(complete));
+
+        List<Campaign> matched = buildCampaigns(3, "BEAUTY", "DELIVERY");
+        given(campaignRepository.findActiveByCategoryAndType(CampaignCategory.BEAUTY, CampaignType.DELIVERY)).willReturn(matched);
+        given(campaignRepository.findActiveByCategory(CampaignCategory.BEAUTY)).willReturn(List.of());
+
+        OnboardingRecommendResponse result = onboardingChatService.getRecommendations(SESSION_ID);
+
+        assertThat(result.campaigns()).hasSize(3);
+    }
+
+    @Test
+    @DisplayName("6단계 저장 시 프로필 임베딩 저장에 성공하면 온보딩 완료로 응답한다")
+    void saveStep_step6CompletesWhenProfileEmbeddingStored() {
+        OnboardingResponse response = completeSessionUntilStep5();
+        given(onboardingResponseRepository.findBySessionId(SESSION_ID)).willReturn(Optional.of(response));
+        given(profileEmbeddingSyncService.syncProfileEmbedding(response)).willReturn(true);
+
+        OnboardingStepRequest request = new OnboardingStepRequest(
+                SESSION_ID, 6, null, List.of("BLOG"), null);
+
+        OnboardingStepResponse result = onboardingChatService.saveStep(request);
+
+        assertThat(result.isComplete()).isTrue();
+        assertThat(result.nextStep()).isNull();
+        assertThat(response.isProfileEmbeddingStored()).isTrue();
+    }
+
+    @Test
+    @DisplayName("6단계 저장 시 프로필 임베딩 저장에 실패해도 온보딩 완료로 응답한다")
+    void saveStep_step6CompletesEvenWhenProfileEmbeddingFails() {
+        OnboardingResponse response = completeSessionUntilStep5();
+        given(onboardingResponseRepository.findBySessionId(SESSION_ID)).willReturn(Optional.of(response));
+        given(profileEmbeddingSyncService.syncProfileEmbedding(response)).willReturn(false);
+
+        OnboardingStepRequest request = new OnboardingStepRequest(
+                SESSION_ID, 6, null, List.of("BLOG"), null);
+
+        OnboardingStepResponse result = onboardingChatService.saveStep(request);
+
+        assertThat(result.isComplete()).isTrue();
+        assertThat(result.nextStep()).isNull();
+        assertThat(response.isProfileEmbeddingStored()).isFalse();
     }
 
     @Test
@@ -185,6 +242,12 @@ class OnboardingChatServiceTest {
     // --- helpers ---
 
     private OnboardingResponse completeSession(String step1, String step2, String step3, String step4) {
+        OnboardingResponse r = completeSessionWithoutEmbedding(step1, step2, step3, step4);
+        r.markProfileEmbeddingStored();
+        return r;
+    }
+
+    private OnboardingResponse completeSessionWithoutEmbedding(String step1, String step2, String step3, String step4) {
         OnboardingResponse r = OnboardingResponse.create(SESSION_ID);
         r.applyStep(1, step1);
         r.applyStep(2, step2);
@@ -192,6 +255,17 @@ class OnboardingChatServiceTest {
         r.applyStep(4, step4);
         r.updateRegionIds(List.of(1L));
         r.updateActivityTypes(List.of("NAVER"));
+        return r;
+    }
+
+    private OnboardingResponse completeSessionUntilStep5() {
+        OnboardingResponse r = OnboardingResponse.create(SESSION_ID);
+        r.applyStep(1, "FOOD");
+        r.applyStep(2, "YES");
+        r.applyStep(3, "DELIVERY");
+        r.applyStep(4, "MIDDLE");
+        r.updateRegionIds(List.of(1L));
+        r.mergeUser(42L);
         return r;
     }
 

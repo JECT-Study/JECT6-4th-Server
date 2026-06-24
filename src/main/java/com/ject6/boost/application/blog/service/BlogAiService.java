@@ -3,6 +3,7 @@ package com.ject6.boost.application.blog.service;
 import com.ject6.boost.application.blog.exception.BlogErrorCode;
 import com.ject6.boost.application.common.exception.BusinessException;
 import com.ject6.boost.infrastructure.common.queue.AnalysisQueuePublisher;
+import com.ject6.boost.infrastructure.common.redis.AnalysisCacheService;
 import com.ject6.boost.domain.blog.repository.BlogRecommendationRepository;
 import com.ject6.boost.domain.campaign.entity.Campaign;
 import com.ject6.boost.domain.campaign.repository.CampaignRepository;
@@ -11,6 +12,8 @@ import com.ject6.boost.infrastructure.blog.client.PythonAiClient;
 import com.ject6.boost.infrastructure.blog.client.dto.ConversationRequest;
 import com.ject6.boost.infrastructure.blog.client.dto.ConversationResponse;
 import com.ject6.boost.presentation.blog.dto.*;
+import com.ject6.boost.presentation.blog.dto.DiagnoseRequest;
+import com.ject6.boost.presentation.blog.dto.DiagnoseResponse;
 import com.ject6.boost.domain.user.entity.BlogAnalysisResult;
 import com.ject6.boost.domain.user.entity.UserBlog;
 import com.ject6.boost.domain.user.repository.BlogAnalysisResultRepository;
@@ -22,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -44,6 +48,8 @@ public class BlogAiService {
     private final CampaignRepository campaignRepository;
     private final UserRepository userRepository;
     private final UserBlogRepository userBlogRepository;
+    private final AnalysisCacheService analysisCacheService;
+    private final DiagnosisQuotaService diagnosisQuotaService;
 
     /**
      * POST /blog/analyze
@@ -65,21 +71,68 @@ public class BlogAiService {
             throw new BusinessException(BlogErrorCode.INVALID_ANALYSIS_MODE);
         }
 
+        boolean forceRefresh = Boolean.TRUE.equals(request.forceRefresh());
+
         if ("FULL_BLOG".equals(mode)) {
-            // FULL_BLOG는 여러 포스트를 먼저 모두 ingest한 뒤 블로그 전체 스냅샷 1건만 분석한다.
-            // batchId는 이 요청에서 크롤링된 N개 포스트를 하나의 묶음으로 추적하기 위한 ID다.
-            // 여기서 batch는 스케줄러/야간 배치가 아니라 "FULL_BLOG 요청 1건의 포스트 묶음"을 뜻한다.
-            String batchId = UUID.randomUUID().toString();
-            crawlerAsyncTrigger.triggerAsync(blog.getBlogUrl(), userId, blog.getId(), correlationId, "FULL_BLOG", batchId);
-            log.info("FULL_BLOG 분석 요청 userId={} correlationId={} batchId={}", userId, correlationId, batchId);
-            return new AnalyzeResponse(null, "crawling",
-                    "블로그 전체 분석을 준비 중입니다. 크롤링 및 집계 완료 후 분석이 시작됩니다.",
-                    null, correlationId, batchId);
+            // 캐시 hit 확인 (forceRefresh가 아닌 경우)
+            if (!forceRefresh) {
+                Optional<String> cached = analysisCacheService.getFullBlogCache(userId, blog.getId());
+                if (cached.isPresent()) {
+                    log.info("FULL_BLOG 캐시 hit userId={} jobId={}", userId, cached.get());
+                    return new AnalyzeResponse(null, "cached",
+                            "이미 분석된 결과가 있습니다. 최신 분석을 원하시면 forceRefresh=true를 사용하세요.",
+                            null, null, null, true, Long.parseLong(cached.get()));
+                }
+            }
+
+            boolean lockAcquired = false;
+            boolean quotaReserved = false;
+            try {
+                // 의미 기반 lock: 동일 (userId, blogId) 쌍의 중복 요청을 차단
+                if (!analysisCacheService.acquireFullBlogLock(userId, blog.getId())) {
+                    log.warn("FULL_BLOG 중복 요청 감지 userId={} blogId={}", userId, blog.getId());
+                    return new AnalyzeResponse(null, "in_progress",
+                            "이미 분석이 진행 중입니다.", null, correlationId, null, false, null);
+                }
+                lockAcquired = true;
+
+                // correlationId → {userId, blogId} 매핑을 Redis에 저장 (완료 이벤트 수신 시 lock 해제 + 캐시 키 산출)
+                analysisCacheService.storeCorrelationContext(correlationId, userId, blog.getId());
+
+                // FULL_BLOG 진단 쿼터 예약
+                diagnosisQuotaService.reserveOrThrow(userId);
+                quotaReserved = true;
+
+                String batchId = UUID.randomUUID().toString();
+                crawlerAsyncTrigger.triggerAsync(blog.getBlogUrl(), userId, blog.getId(), correlationId, "FULL_BLOG", batchId);
+                log.info("FULL_BLOG 분석 요청 userId={} correlationId={} batchId={}", userId, correlationId, batchId);
+                return new AnalyzeResponse(null, "crawling",
+                        "블로그 전체 분석을 준비 중입니다. 크롤링 및 집계 완료 후 분석이 시작됩니다.",
+                        null, correlationId, batchId, false, null);
+            } catch (RuntimeException e) {
+                if (quotaReserved) {
+                    diagnosisQuotaService.releaseReservation(userId);
+                }
+                if (lockAcquired) {
+                    analysisCacheService.releaseFullBlogLock(userId, blog.getId());
+                    analysisCacheService.deleteCorrelationContext(correlationId);
+                }
+                throw e;
+            }
         }
 
         // POST mode
         Long docId = request.documentId();
         if (docId != null) {
+            // POST 캐시 hit 확인
+            if (!forceRefresh) {
+                Optional<String> cached = analysisCacheService.getPostCache(userId, docId);
+                if (cached.isPresent()) {
+                    log.info("POST 캐시 hit userId={} documentId={} jobId={}", userId, docId, cached.get());
+                    return new AnalyzeResponse(docId, "cached",
+                            "이미 분석된 결과가 있습니다.", null, null, null, true, Long.parseLong(cached.get()));
+                }
+            }
             queuePublisher.publishWithMode(userId, docId, correlationId, "POST");
             try {
                 blogAnalysisResultRepository.save(BlogAnalysisResult.create(
@@ -87,14 +140,19 @@ public class BlogAiService {
             } catch (Exception e) {
                 log.warn("blog_analysis_results 저장 실패 (non-critical) userId={}: {}", userId, e.getMessage());
             }
-            return new AnalyzeResponse(docId, "pending", "분석이 요청되었습니다.", null, correlationId, null);
+            return new AnalyzeResponse(docId, "pending", "분석이 요청되었습니다.", null, correlationId, null, false, null);
         }
 
         // POST + documentId 없음 → 크롤링 후 IngestWorker가 포스트별 분석 큐 발행
         crawlerAsyncTrigger.triggerAsync(blog.getBlogUrl(), userId, blog.getId(), correlationId, "POST", null);
         log.info("POST 분석 요청 (documentId 없음) userId={} correlationId={}", userId, correlationId);
         return new AnalyzeResponse(null, "crawling", "블로그 크롤링 중입니다. 잠시 후 분석이 시작됩니다.",
-                null, correlationId, null);
+                null, correlationId, null, false, null);
+    }
+
+    @Transactional(readOnly = true)
+    public QuotaResponse getQuota(Long userId) {
+        return diagnosisQuotaService.getQuota(userId);
     }
 
     /**
@@ -171,6 +229,14 @@ public class BlogAiService {
                 new ConversationRequest(userId, request.sessionId(), request.documentId(), request.message())
         );
         return new ChatResponse(resp.sessionId(), resp.reply(), resp.tokensUsed(), resp.tokensRemaining());
+    }
+
+    /**
+     * POST /blog/diagnosis
+     * C-1: R2 6지표 진단 — Analyzer POST /v1/diagnosis 프록시
+     */
+    public DiagnoseResponse runDiagnosis(Long userId, Long documentId) {
+        return pythonAiClient.runDiagnosis(userId, documentId);
     }
 
     /**
