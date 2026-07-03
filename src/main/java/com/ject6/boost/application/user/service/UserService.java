@@ -18,7 +18,7 @@ import com.ject6.boost.domain.user.repository.UserBlogRepository;
 import com.ject6.boost.domain.user.repository.UserOAuthAccountRepository;
 import com.ject6.boost.domain.user.repository.UserRegionRepository;
 import com.ject6.boost.domain.user.repository.UserRepository;
-import com.ject6.boost.infrastructure.blog.client.CrawlerClient;
+import com.ject6.boost.application.blog.service.BlogCrawlerAsyncTrigger;
 import com.ject6.boost.infrastructure.user.BlogPostCountClient;
 import com.ject6.boost.presentation.user.dto.BlogLinkRequest;
 import com.ject6.boost.presentation.user.dto.BlogLinkResponse;
@@ -55,7 +55,7 @@ public class UserService {
     private final UserOAuthAccountRepository userOAuthAccountRepository;
     private final BlogAnalysisResultRepository blogAnalysisResultRepository;
     private final BlogPostCountClient blogPostCountClient;
-    private final CrawlerClient crawlerClient;
+    private final BlogCrawlerAsyncTrigger blogCrawlerAsyncTrigger;
 
     /**
      * 인증된 사용자의 프로필 정보를 조회하는 함수.
@@ -182,7 +182,8 @@ public class UserService {
                 .orElseGet(() -> userBlogRepository.save(UserBlog.create(user, blogUrl, platform)));
 
         // 블로그 연동 시 초기 색인 크롤링. 분석 요청 없으므로 correlationId=null.
-        crawlerClient.triggerBlogPostCrawl(blogUrl, user.getId(), blog.getId(), null);
+        // 크롤링이 오래 걸릴 수 있어 요청 스레드를 막지 않도록 비동기로 트리거한다.
+        blogCrawlerAsyncTrigger.triggerAsync(blogUrl, user.getId(), blog.getId(), null, null, null);
 
         return BlogLinkResponse.from(blog);
     }
